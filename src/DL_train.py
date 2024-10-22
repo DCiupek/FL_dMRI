@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import argparse
+import warnings
 
 
 # Create the parser
@@ -57,6 +58,11 @@ L = 6
 
 # Set Weights & Biases
 if args.wandb == "Yes":
+    
+    # Check if key is entered
+    if args.key==None:
+        warnings.warn("Weights & Biases key not provided, you need to create a Weights & Biases account, or use an existing account", UserWarning)
+
     # Log in to Weights & Biases
     wandb.login(key = args.key)
     
