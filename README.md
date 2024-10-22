@@ -14,4 +14,11 @@ The saved files should contain a Python dictionary with the following structure:
 
 ### 2. Train the model:
 
+Run the model training algorithm:
+```shell
+cd src
+python DL_train.py  
+```
+
 ## Federated learning with multiple datasets
+
