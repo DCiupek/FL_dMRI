@@ -61,7 +61,7 @@ if args.wandb == "Yes":
     
     # Check if key is entered
     if args.key==None:
-        warnings.warn("Weights & Biases key not provided, you need to create a Weights & Biases account, or use an existing account", UserWarning)
+        warnings.warn("Weights & Biases key not provided, you need to create a Weights & Biases account, or use an existing one", UserWarning)
 
     # Log in to Weights & Biases
     wandb.login(key = args.key)
