@@ -32,10 +32,11 @@ positional arguments:
   dataset        Dataset name, e.g. CamCan.
   save_path      Path to save the model, e.g. C:/Users/.
   wandb          Use Weights & Biases for monitoring, Yes or No.
+                   - If 'Yes', the following arguments are required: --key.
 
 optional arguments:
   -h, --help     show this help message and exit
-  --key KEY      Weights & Biases key, required if you want to use Weights & Biases.
+  --key KEY      Weights & Biases key.
 ```
 
 #### Example of training the model without using Weights & Biases for real-time monitoring:
