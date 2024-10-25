@@ -97,6 +97,7 @@ python DL_evaluate.py FA 1 1000 Penthera CamCan C:/Users/ No No
 ## Federated learning with multiple datasets
 
 ## TO DO:
+- Change the parameter's name to be more self-explanatory.
 - Add functionality to select model input channels.
 - Include the option to select b vectors for transforming diffusion-weighted MR data.
 - Implement model training on averaged diffusion-weighted MR data.
