@@ -4,10 +4,12 @@ Author: Tomasz Pięciak, Dominika Ciupek
 """
 from __future__ import annotations
 
+import contextlib
 import functools
 import itertools
 import os
 from pathlib import Path
+import subprocess
 from typing import TYPE_CHECKING
 
 from dipy.io import read_bvals_bvecs
@@ -536,6 +538,53 @@ def _load_single_mri_image(fil_data, fil_par, fil_bvals, fil_bvecs, dataset,
     return mris, parameters
 
 
+def _get_node_memory_from_env_variable() -> int | None:
+    mem_mb = os.environ["SLURM_MEM_PER_NODE"]
+    return int(mem_mb) // 1024
+
+
+def _get_node_memory_from_scontrol() -> int | None:
+    partition = os.environ["SLURM_JOB_PARTITION"]
+    cpus = int(os.environ["SLURM_CPUS_ON_NODE"])
+    scontrol_cmd = [
+        '/net/slurm/releases/production.x86_64/bin/scontrol',
+        'show',
+        'partition',
+        f'{partition}'
+    ]
+    proc = subprocess.Popen(scontrol_cmd, stdout=subprocess.PIPE)
+    output = proc.stdout.read().decode('utf-8')
+    mem_line = next(line for line in output.splitlines() if "DefMemPerCPU" in line)
+    mem_entry = next(entry for entry in mem_line.strip().split() if entry.startswith("DefMemPerCPU="))
+    mem_per_cpu_mb = int(mem_entry.split('=')[1].strip().rstrip('MB'))
+    return (mem_per_cpu_mb * cpus) // 1024
+
+
+def _node_get_memory_gb() -> int | None:
+    attempts = [
+        _get_node_memory_from_env_variable,
+        _get_node_memory_from_scontrol,
+    ]
+
+    for attempt in attempts:
+        with contextlib.suppress(Exception):
+            return attempt()
+
+    return None
+
+
+def _estimate_number_of_workers() -> int:
+    memory_gb = _node_get_memory_gb()
+    if memory_gb is None:
+        return 1
+
+    # Empirically estimated that each worker requires around 14 GB of memory, with a base
+    # overhead of 16 GB for the main process and other system operations. These parameters
+    # are based on tests with HCP dataset and may need adjustment for different datasets or
+    # system configurations.
+    return int(1 + (memory_gb - 16) / 14)
+
+
 class ImagMRIDataset(Dataset):
 
     """
@@ -625,10 +674,7 @@ class ImagMRIDataset(Dataset):
         bvecs_path = self.paths_dict["bvecs_path"]
 
         # HERE
-        bts = int(os.environ["SLURM_MEM_PER_NODE"]) // 1024
-        mw = int(1 + (bts - 16) / 14)
-        print(f'mem: {bts:.2f}')
-        print(f'mw: {mw}')
+        mw = _estimate_number_of_workers()
 
         load_single = functools.partial(_load_single_mri_image, dataset=dataset, parameter=parameter, max_val=max_val,
                           bvalue=bvalue, l=l, in_size=in_size, data_type=data_type, lambda_reg=lambda_reg, eps=eps)
