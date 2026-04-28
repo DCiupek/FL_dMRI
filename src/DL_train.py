@@ -96,7 +96,14 @@ if args.preprocess:
     dataset.save_joblib(f'dataset-{DATASET}-{PARAMETER}.jbl')
     sys.exit(0)
 
-dataset = ImagMRIDataset.load_joblib(f'dataset-{DATASET}-{PARAMETER}.jbl')
+try:
+    dataset = ImagMRIDataset.load_joblib(f'dataset-{DATASET}-{PARAMETER}.jbl')
+except FileNotFoundError:
+    msg = (
+        "Preprocessed dataset not found. Please run the script with the"
+        " --preprocess flag first to preprocess the data and save it to a file."
+    )
+    sys.exit(1)
 
 # Split dataset
 train_split = 0.8
