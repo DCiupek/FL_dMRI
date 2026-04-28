@@ -618,8 +618,6 @@ class ImagMRIDataset(Dataset):
         self.paths_dict = paths_dict
         self.transform = transform
 
-        self.mri, self.parameters = [], []
-
         # Load paths to files
         data_path = self.paths_dict["data_path"]
         par_path = self.paths_dict["par_path"]
@@ -631,6 +629,7 @@ class ImagMRIDataset(Dataset):
         mw = int(1 + (bts - 16) / 14)
         print(f'mem: {bts:.2f}')
         print(f'mw: {mw}')
+
         load_single = functools.partial(_load_single_mri_image, dataset=dataset, parameter=parameter, max_val=max_val,
                           bvalue=bvalue, l=l, in_size=in_size, data_type=data_type, lambda_reg=lambda_reg, eps=eps)
 
