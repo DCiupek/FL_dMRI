@@ -3,7 +3,7 @@ Author: Dominika Ciupek
 """
 
 
-
+import sys
 import torch
 from torch.utils.data import DataLoader, random_split
 import pickle
@@ -18,9 +18,9 @@ import warnings
 
 # Custom function to validate additional mandatory arguments
 def validate_args(args):
-    if args.wandb == 'Yes':
-        if args.key is None:
-            warnings.warn("Weights & Biases key not provided, you need to create a Weights & Biases account, or use an existing account", UserWarning)
+    if args.wandb == 'Yes' and args.key is None:
+        warnings.warn("Weights & Biases key not provided, you need to create a Weights & Biases account, or use an existing account", UserWarning)
+
 
 # Create the parser
 parser = argparse.ArgumentParser(description="Script to train the model using a single dataset.")
@@ -37,7 +37,10 @@ parser.add_argument('batch', type=int, help='Batch size, e.g. 16.')
 parser.add_argument('learning_rate', type=float, help='Learning rate, e.g. 0.001.')
 parser.add_argument('dataset', type=str, help='Dataset name, e.g. CamCan.')
 parser.add_argument('save_path', type=str, help='Path to save the model, e.g. C:/Users/.')
+parser.add_argument('data_type', type=str, help='Type of the model, dMRI or RISH.')
+parser.add_argument('channels', type=int, help='Number of channels, e.g. 64.')
 parser.add_argument('wandb', type=str, help="Use Weights & Biases for monitoring, Yes or No.\n  - If 'Yes', the following arguments are required: --key.\n")
+parser.add_argument('--preprocess', action="store_true", help='Preprocess the data and save it to a file.')
 parser.add_argument('--key', type=str, help='Weights & Biases key.', required=False)
 
 # Parse the arguments
@@ -55,10 +58,11 @@ BATCH_SIZE = args.batch
 LR_RATE = args.learning_rate
 DATASET = args.dataset
 MODEL_PATH = args.save_path
+DATA_TYPE = args.data_type
+IN_SIZE = args.channels
 
-WANDB_RUN = True if args.wandb == "Yes" else False
+WANDB_RUN = args.wandb == "Yes"
 
-IN_SIZE = 30
 OUT_SIZE = 1
 FEATURES = 64
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -66,15 +70,14 @@ MODEL_NAME = 'ParamUNet_' + PARAMETER + '_' + DATASET + '_L1multDSSIM_normNew_ep
 L = 6
 
 # Set Weights & Biases
-if args.wandb == "Yes":
-
+if WANDB_RUN:
     # Log in to Weights & Biases
-    wandb.login(key = args.key)
-    
+    wandb.login(key=args.key)
+
     # Initialize the run
     wandb.init(
         name=MODEL_NAME,
-        project="test_" + PARAMETER,   
+        project="test_" + PARAMETER,
         config={
         "learning_rate": LR_RATE,
         "batch": BATCH_SIZE,
@@ -88,7 +91,12 @@ with open(os.getcwd() + '/paths/' + DATASET + '_train_paths.pkl', 'rb') as f:
     paths_dict = pickle.load(f)
 
 # Create dataset class
-dataset = ImagMRIDataset(DATASET, PARAMETER, paths_dict, MAX_VAL, B_VAL, L)
+if args.preprocess:
+    dataset = ImagMRIDataset(DATASET, PARAMETER, paths_dict, MAX_VAL, B_VAL, L, IN_SIZE, DATA_TYPE)
+    dataset.save_joblib(f'dataset-{DATASET}-{PARAMETER}.jbl')
+    sys.exit(0)
+
+dataset = ImagMRIDataset.load_joblib(f'dataset-{DATASET}-{PARAMETER}.jbl')
 
 # Split dataset
 train_split = 0.8
