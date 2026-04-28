@@ -574,6 +574,8 @@ def _node_get_memory_gb() -> int | None:
 
 
 def _estimate_number_of_workers() -> int:
+    if "SLURM_JOB_ID" not in os.environ:
+        return 1
     memory_gb = _node_get_memory_gb()
     if memory_gb is None:
         return 1
